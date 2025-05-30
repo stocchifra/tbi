@@ -64,8 +64,12 @@ cp .env.example .env
 
 ### 4. Production Mode
 ```bash
-# Start with Docker
+# Start with Docker (single container)
 ./start-prod.sh
+
+# Or manually:
+docker build -t tbi-app .
+docker run -p 8080:8080 tbi-app
 ```
 
 ## 🛠️ Manual Setup
@@ -157,9 +161,9 @@ REACT_APP_ENVIRONMENT=development
 
 ```
 tbi/
-├── docker-compose.yml          # Production deployment
-├── Dockerfile.backend          # Backend container
-├── Dockerfile.frontend         # Frontend container
+├── Dockerfile                  # Single-container deployment
+├── nginx-single.conf           # Nginx configuration
+├── supervisord.conf           # Process management
 ├── requirements.txt            # Python dependencies
 ├── setup.sh                    # Initial setup script
 ├── start-dev.sh               # Development startup
@@ -200,46 +204,40 @@ API keys are stored encrypted per session. No global authentication required for
 
 ## 🐳 Docker Deployment
 
-### Using Docker Compose (Recommended)
+### Single Container (Recommended)
 ```bash
-# Build and start all services
-docker-compose up -d
+# Build and start
+docker build -t tbi-app .
+docker run -p 8080:8080 tbi-app
+
+# Or use production script
+./start-prod.sh
 
 # View logs
-docker-compose logs -f
+docker logs -f tbi-app-prod
 
-# Stop services
-docker-compose down
+# Stop service
+docker stop tbi-app-prod
 ```
 
-### Individual Containers
-```bash
-# Build backend
-docker build -f Dockerfile.backend -t doc-analysis-backend .
-
-# Build frontend
-docker build -f Dockerfile.frontend -t doc-analysis-frontend .
-
-# Run backend
-docker run -p 8000:8000 -e OPENAI_API_KEY=your_key doc-analysis-backend
-
-# Run frontend
-docker run -p 3000:80 doc-analysis-frontend
-```
+### Access the Application
+- **Frontend**: http://localhost:8080
+- **API Health**: http://localhost:8080/health  
+- **API Docs**: http://localhost:8080/api/docs
 
 ## 🔍 Monitoring and Debugging
 
 ### Health Checks
-- Backend: `http://localhost:8000/health`
-- Frontend: `http://localhost:3000`
+- Application: `http://localhost:8080/health`
+- Frontend: `http://localhost:8080`
 
 ### Logs
 ```bash
 # Development logs
 tail -f backend.log
+
 # Docker logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker logs -f tbi-app-prod
 ```
 
 ### Performance Monitoring
@@ -326,9 +324,10 @@ cd src/frontend && npm install
 #### Docker issues
 ```bash
 # Reset Docker environment
-docker-compose down -v
+docker stop tbi-app-prod
+docker rm tbi-app-prod
 docker system prune -f
-docker-compose up --build
+docker build -t tbi-app .
 ```
 
 ## 📞 Support

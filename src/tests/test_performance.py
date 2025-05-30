@@ -4,9 +4,13 @@ Performance tests for the application
 import pytest
 import time
 import asyncio
+import os
 from httpx import AsyncClient
 from unittest.mock import patch
 import json
+
+# Set environment variable for simulated API key validation
+os.environ["SIMULATE_OPENAI_KEY"] = "1"
 
 pytestmark = pytest.mark.asyncio
 
@@ -17,44 +21,49 @@ class TestPerformanceRequirements:
     @pytest.mark.asyncio
     async def test_chat_response_latency(self, client: AsyncClient):
         """Test that chat responses are under 3 seconds (p95)"""
-        # Create session and upload document
-        session_response = await client.post("/sessions/")
+        # Create session
+        session_response = await client.post("/api/sessions/")
         session_id = session_response.json()["session_id"]
         
+        # Set dummy API key
+        api_key_data = {
+            "session_id": session_id,
+            "api_key": "dummy-test-key-for-testing"
+        }
+        await client.post("/api/config/openai-key", json=api_key_data)
+        
+        # Upload document
         document_data = {
+            "session_id": session_id,
             "content": "This is a test document for performance testing. " * 50,
             "filename": "performance_test.txt"
         }
-        await client.post(
-            f"/sessions/{session_id}/documents/upload-text",
-            json=document_data
-        )
+        doc_response = await client.post("/api/documents/upload", json=document_data)
+        document_id = doc_response.json()["id"]
         
         # Measure response times for multiple requests
         response_times = []
         
-        with patch('src.app.services.openai_service.OpenAIService.chat_with_documents') as mock_chat:
+        with patch('app.services.openai_service.OpenAIService.analyze_document') as mock_analyze:
             # Mock fast response
             async def mock_stream():
                 await asyncio.sleep(0.1)  # Simulate processing time
-                yield "data: " + json.dumps({"content": "Fast response"}) + "\n\n"
-                yield "data: [DONE]\n\n"
+                yield "Fast"
+                yield " response"
             
-            mock_chat.return_value = mock_stream()
+            mock_analyze.return_value = mock_stream()
             
             # Run multiple requests
             for i in range(10):
                 start_time = time.time()
                 
                 query_data = {
+                    "session_id": session_id,
                     "query": f"Test query {i}",
-                    "api_key": "test_api_key"
+                    "document_id": document_id
                 }
                 
-                response = await client.post(
-                    f"/sessions/{session_id}/chat",
-                    json=query_data
-                )
+                response = await client.post("/api/chat/query", json=query_data)
                 
                 # Read the streaming response
                 async for chunk in response.aiter_text():
@@ -79,7 +88,7 @@ class TestPerformanceRequirements:
     @pytest.mark.asyncio
     async def test_document_upload_performance(self, client: AsyncClient):
         """Test document upload performance"""
-        session_response = await client.post("/sessions/")
+        session_response = await client.post("/api/sessions/")
         session_id = session_response.json()["session_id"]
         
         # Test with different document sizes
@@ -89,14 +98,12 @@ class TestPerformanceRequirements:
             start_time = time.time()
             
             document_data = {
+                "session_id": session_id,
                 "content": "x" * size,
                 "filename": f"test_{size}.txt"
             }
             
-            response = await client.post(
-                f"/sessions/{session_id}/documents/upload-text",
-                json=document_data
-            )
+            response = await client.post("/api/documents/upload", json=document_data)
             
             end_time = time.time()
             upload_time = end_time - start_time
@@ -108,39 +115,43 @@ class TestPerformanceRequirements:
     async def test_concurrent_requests(self, client: AsyncClient):
         """Test handling of concurrent requests"""
         # Create session
-        session_response = await client.post("/sessions/")
+        session_response = await client.post("/api/sessions/")
         session_id = session_response.json()["session_id"]
+        
+        # Set dummy API key
+        api_key_data = {
+            "session_id": session_id,
+            "api_key": "dummy-test-key-for-testing"
+        }
+        await client.post("/api/config/openai-key", json=api_key_data)
         
         # Upload document
         document_data = {
+            "session_id": session_id,
             "content": "Test document for concurrent testing",
             "filename": "concurrent_test.txt"
         }
-        await client.post(
-            f"/sessions/{session_id}/documents/upload-text",
-            json=document_data
-        )
+        doc_response = await client.post("/api/documents/upload", json=document_data)
+        document_id = doc_response.json()["id"]
         
-        with patch('src.app.services.openai_service.OpenAIService.chat_with_documents') as mock_chat:
+        with patch('app.services.openai_service.OpenAIService.analyze_document') as mock_analyze:
             async def mock_stream():
                 await asyncio.sleep(0.2)  # Simulate processing
-                yield "data: " + json.dumps({"content": "Concurrent response"}) + "\n\n"
-                yield "data: [DONE]\n\n"
+                yield "Concurrent"
+                yield " response"
             
-            mock_chat.return_value = mock_stream()
+            mock_analyze.return_value = mock_stream()
             
             # Create multiple concurrent requests
             async def make_request(query_num):
                 query_data = {
+                    "session_id": session_id,
                     "query": f"Concurrent query {query_num}",
-                    "api_key": "test_api_key"
+                    "document_id": document_id
                 }
                 
                 start_time = time.time()
-                response = await client.post(
-                    f"/sessions/{session_id}/chat",
-                    json=query_data
-                )
+                response = await client.post("/api/chat/query", json=query_data)
                 
                 # Read response
                 async for chunk in response.aiter_text():
@@ -165,42 +176,46 @@ class TestStabilityRequirements:
     @pytest.mark.asyncio
     async def test_stability_100_queries(self, client: AsyncClient):
         """Test system stability over 100 queries"""
-        # Create session and upload document
-        session_response = await client.post("/sessions/")
+        # Create session
+        session_response = await client.post("/api/sessions/")
         session_id = session_response.json()["session_id"]
         
+        # Set dummy API key
+        api_key_data = {
+            "session_id": session_id,
+            "api_key": "dummy-test-key-for-testing"
+        }
+        await client.post("/api/config/openai-key", json=api_key_data)
+        
+        # Upload document
         document_data = {
+            "session_id": session_id,
             "content": "Stability test document with relevant information.",
             "filename": "stability_test.txt"
         }
-        await client.post(
-            f"/sessions/{session_id}/documents/upload-text",
-            json=document_data
-        )
+        doc_response = await client.post("/api/documents/upload", json=document_data)
+        document_id = doc_response.json()["id"]
         
         successful_queries = 0
         failed_queries = 0
         
-        with patch('src.app.services.openai_service.OpenAIService.chat_with_documents') as mock_chat:
+        with patch('app.services.openai_service.OpenAIService.analyze_document') as mock_analyze:
             async def mock_stream():
                 await asyncio.sleep(0.05)  # Fast mock response
-                yield "data: " + json.dumps({"content": f"Response {successful_queries}"}) + "\n\n"
-                yield "data: [DONE]\n\n"
+                yield f"Response {successful_queries}"
             
-            mock_chat.return_value = mock_stream()
+            mock_analyze.return_value = mock_stream()
             
             # Run 100 queries
             for i in range(100):
                 try:
                     query_data = {
+                        "session_id": session_id,
                         "query": f"Stability test query {i}",
-                        "api_key": "test_api_key"
+                        "document_id": document_id
                     }
                     
-                    response = await client.post(
-                        f"/sessions/{session_id}/chat",
-                        json=query_data
-                    )
+                    response = await client.post("/api/chat/query", json=query_data)
                     
                     if response.status_code == 200:
                         successful_queries += 1
@@ -236,19 +251,17 @@ class TestMemoryUsage:
         
         # Create and use multiple sessions
         for i in range(10):
-            session_response = await client.post("/sessions/")
+            session_response = await client.post("/api/sessions/")
             session_id = session_response.json()["session_id"]
             
             # Upload large document
             large_content = "Large document content. " * 1000
             document_data = {
+                "session_id": session_id,
                 "content": large_content,
                 "filename": f"large_doc_{i}.txt"
             }
-            await client.post(
-                f"/sessions/{session_id}/documents/upload-text",
-                json=document_data
-            )
+            await client.post("/api/documents/upload", json=document_data)
         
         # Check memory after operations
         final_memory = process.memory_info().rss

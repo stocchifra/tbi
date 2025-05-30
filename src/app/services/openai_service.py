@@ -7,6 +7,7 @@ import logging
 from typing import AsyncGenerator, Optional, Dict, Any
 from datetime import datetime
 import json
+import os
 
 import openai
 from openai import AsyncOpenAI
@@ -40,6 +41,13 @@ class OpenAIService:
         """
         Analyze document with streaming response
         """
+        # Check if we're in simulation mode
+        if os.getenv("SIMULATE_OPENAI_KEY") == "1":
+            # Simulate streaming response for testing
+            async for chunk in self._simulate_response(document_content, query):
+                yield chunk
+            return
+            
         max_tokens = max_tokens or settings.openai_max_tokens
         
         # Create system prompt for document analysis
@@ -86,6 +94,24 @@ class OpenAIService:
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             raise
+
+    async def _simulate_response(self, document_content: str, query: str) -> AsyncGenerator[str, None]:
+        """Simulate OpenAI response for testing without real API key"""
+        # Create a simulated response based on the query and document
+        if document_content:
+            response = f"Based on the document you provided, I can see that it contains information about: {document_content[:100]}... "
+        else:
+            response = "I'd be happy to help you with your query. "
+        
+        response += f"Regarding your question '{query}', this is a simulated response for testing purposes. "
+        response += "In production with a real OpenAI API key, I would provide detailed analysis based on your document content."
+        
+        # Simulate streaming by yielding chunks
+        words = response.split()
+        for i in range(0, len(words), 3):  # Yield 3 words at a time
+            chunk = " ".join(words[i:i+3]) + " "
+            yield chunk
+            await asyncio.sleep(0.1)  # Small delay to simulate streaming
     
     async def get_response_tokens(self, content: str) -> int:
         """Estimate token count for response"""
@@ -129,6 +155,9 @@ Please analyze the document and answer the question based on the content provide
 
     async def validate_api_key(self) -> bool:
         """Validate the OpenAI API key"""
+        if os.getenv("SIMULATE_OPENAI_KEY") == "1":
+            # Simulate always valid in test mode
+            return True
         try:
             # Make a simple API call to validate the key
             await self.client.chat.completions.create(

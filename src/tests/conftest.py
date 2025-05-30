@@ -2,13 +2,14 @@
 Test configuration for pytest
 """
 import pytest
+import pytest_asyncio
 import asyncio
 import sys
 import os
-from typing import AsyncGenerator
+from typing import Generator
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 # Add the src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -17,20 +18,29 @@ from app.main import app
 from app.models.database import Base, get_db_session
 from app.utils.config import get_settings
 
-# Test database URL
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# Test database URL (use in-memory SQLite for tests)
+TEST_DATABASE_URL = "sqlite:///./test.db"
 
 # Create test engine
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-TestSessionLocal = sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
-)
+test_engine = create_engine(TEST_DATABASE_URL, echo=False)
+TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+# Initialize tables once for the entire test session
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Set up test database tables for the entire test session"""
+    Base.metadata.create_all(bind=test_engine)
+    yield
+    Base.metadata.drop_all(bind=test_engine)
 
 
-async def override_get_db_session():
+def override_get_db_session():
     """Override database dependency for testing"""
-    async with TestSessionLocal() as session:
+    session = TestSessionLocal()
+    try:
         yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture(scope="session")
@@ -42,23 +52,26 @@ def event_loop():
 
 
 @pytest.fixture(scope="function")
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+def db_session() -> Generator[Session, None, None]:
     """Create a fresh database session for each test"""
-    # Create tables
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    # Provide session
-    async with TestSessionLocal() as session:
+    # Provide session (tables already created by setup_test_database)
+    session = TestSessionLocal()
+    try:
         yield session
-    
-    # Clean up
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    finally:
+        session.close()
+        # Clean up data but keep tables
+        session = TestSessionLocal()
+        try:
+            for table in reversed(Base.metadata.sorted_tables):
+                session.execute(table.delete())
+            session.commit()
+        finally:
+            session.close()
 
 
-@pytest.fixture(scope="function")
-async def client():
+@pytest_asyncio.fixture
+async def client() -> AsyncClient:
     """Create test client with database override"""
     app.dependency_overrides[get_db_session] = override_get_db_session
     

@@ -24,7 +24,7 @@ interface APIProviderProps {
   children: ReactNode;
 }
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const BASE_URL = process.env.REACT_APP_API_URL || window.location.origin;
 
 export const APIProvider: React.FC<APIProviderProps> = ({ children }) => {
   const { sessionId } = useSession();
