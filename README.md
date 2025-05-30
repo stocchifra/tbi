@@ -1,354 +1,359 @@
-# AI-Powered Document Analysis Application
+# AI Document Analysis Application
 
-A prototype application that automates document analysis, extracts key insights, and generates summaries using AI. Built with FastAPI backend, React TypeScript frontend, and OpenAI API integration.
-
-## 🚀 Features
-
-- **Document Upload**: Support for file upload and text paste
-- **AI-Powered Analysis**: Natural language queries about your documents
-- **Real-time Chat**: Streaming responses for fast interaction
-- **Session Management**: Persistent chat history and document storage
-- **Secure API Key Management**: Encrypted storage of OpenAI API keys
-- **Performance Optimized**: Sub-3-second response times (p95 latency)
-- **Cost Efficient**: Optimized for <$0.01 per query
-- **Production Ready**: Docker containerization and health monitoring
-
-## 🏗️ Architecture
-
-### Backend (FastAPI)
-- **FastAPI** with async/await for high performance
-- **SQLAlchemy** with SQLite for data persistence
-- **OpenAI API** integration with streaming responses
-- **Encryption** for secure API key storage
-- **Session management** with UUID-based sessions
-- **Document chunking** for large file handling
-
-### Frontend (React TypeScript)
-- **React 18** with TypeScript for type safety
-- **Material-UI** for professional, responsive design
-- **Real-time streaming** with Server-Sent Events
-- **Context-based state management**
-- **Error handling** and connection monitoring
-
-## 📋 Requirements
-
-- **Python 3.11+**
-- **Node.js 18+**
-- **Docker** (for production deployment)
-- **OpenAI API Key**
+A production-ready single-container application for AI-powered document analysis and conversational querying. Built with FastAPI backend, React TypeScript frontend, and OpenAI integration, all packaged in a single Docker container for easy deployment.
 
 ## 🚀 Quick Start
 
-### 1. Initial Setup
-```bash
-# Clone the repository
-git clone <repository-url>
-cd tbi
+The application provides two main commands for deployment and testing:
 
-# Run setup script
-./setup.sh
+### 1. Production Deployment
+```bash
+docker run -p 8080:8080 <image_tag>
+```
+**Access the application at: http://localhost:8080**
+
+### 2. Test Execution
+```bash
+docker run <image_tag> python /home/src/tests/run_tests.py
+```
+**Runs complete test suite (24 unit, integration, and performance tests)**
+
+## 🏗️ High-Level Architecture
+
+### Single-Container Design
+The application uses a sophisticated single-container architecture that combines multiple services:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Docker Container                     │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │    Nginx    │  │   FastAPI    │  │   React      │   │
+│  │ (Port 8080) │  │ (Port 8000)  │  │   Frontend   │   │
+│  │             │  │              │  │   (Built)    │   │
+│  └─────────────┘  └──────────────┘  └──────────────┘   │
+│         │                 │                │           │
+│         └─────────────────┼────────────────┘           │
+│                          │                             │
+│  ┌─────────────┐         │         ┌──────────────┐    │
+│  │   SQLite    │         │         │ Supervisor   │    │
+│  │  Database   │         │         │ (Process     │    │
+│  │             │         │         │  Manager)    │    │
+│  └─────────────┘         │         └──────────────┘    │
+│                          │                             │
+│                          ▼                             │
+│                 ┌──────────────┐                       │
+│                 │  OpenAI API  │                       │
+│                 │ Integration  │                       │
+│                 └──────────────┘                       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 2. Configure Environment
-```bash
-# Edit .env file with your OpenAI API key
-cp .env.example .env
-# Edit .env and add: OPENAI_API_KEY=your_api_key_here
+### Component Architecture
+
+#### 1. **Nginx Reverse Proxy (Port 8080)**
+- Serves React frontend static files
+- Proxies API requests to FastAPI backend at `/api/*`
+- Handles CORS and security headers
+- Provides single entry point for the application
+
+#### 2. **FastAPI Backend (Port 8000)**
+- RESTful API with async/await for high performance
+- OpenAI integration with streaming responses
+- Session management and document storage
+- Encrypted API key storage
+- Real-time Server-Sent Events for chat streaming
+
+#### 3. **React Frontend**
+- TypeScript-based React application
+- Material-UI for professional interface
+- Real-time chat with streaming responses
+- Document upload and management
+- Connection status monitoring
+
+#### 4. **SQLite Database**
+- Lightweight, embedded database
+- Session and document persistence
+- Encrypted API key storage
+- Chat history management
+
+#### 5. **Supervisor Process Manager**
+- Manages nginx and FastAPI processes
+- Automatic restart on failure
+- Centralized logging and monitoring
+
+## 🎯 Application Logic
+
+### Core Workflow
+1. **Session Creation**: Each user gets a unique session ID
+2. **API Key Setup**: Users provide their OpenAI API key (encrypted and stored)
+3. **Document Upload**: Support for text input or file upload
+4. **AI Analysis**: Natural language queries processed through OpenAI
+5. **Streaming Responses**: Real-time chat interface with live responses
+
+### Key Features
+- **Real-time Chat**: Streaming responses for immediate feedback
+- **Document Context**: AI queries reference uploaded documents
+- **Session Persistence**: Chat history and documents persist across sessions
+- **Production Ready**: Health checks, error handling, and monitoring
+- **Security**: Encrypted API key storage and CORS protection
+
+## 🛠️ Repository Structure
+
+```
+tbi/
+├── Dockerfile                    # Multi-stage build configuration
+├── nginx-single.conf            # Nginx reverse proxy configuration
+├── supervisord.conf             # Process management configuration
+├── requirements.txt             # Python dependencies
+├── README.md                    # This documentation
+│
+├── src/
+│   ├── app/                     # FastAPI Backend Application
+│   │   ├── main.py             # FastAPI app with CORS and routing
+│   │   ├── api/
+│   │   │   └── routes.py       # API endpoints and handlers
+│   │   ├── models/
+│   │   │   └── database.py     # SQLAlchemy models and schemas
+│   │   ├── services/
+│   │   │   └── openai_service.py # OpenAI integration and document processing
+│   │   └── utils/
+│   │       ├── config.py       # Application configuration
+│   │       └── encryption.py   # API key encryption utilities
+│   │
+│   ├── frontend/                # React TypeScript Frontend
+│   │   ├── src/
+│   │   │   ├── components/     # React UI components
+│   │   │   │   ├── ChatInterface.tsx
+│   │   │   │   ├── DocumentUploader.tsx
+│   │   │   │   ├── SettingsPanel.tsx
+│   │   │   │   └── ConnectionStatus.tsx
+│   │   │   ├── contexts/       # React context providers
+│   │   │   │   ├── APIContext.tsx
+│   │   │   │   ├── SessionContext.tsx
+│   │   │   │   └── DocumentContext.tsx
+│   │   │   ├── App.tsx         # Main React application
+│   │   │   └── index.tsx       # React entry point
+│   │   ├── package.json        # Frontend dependencies
+│   │   └── tsconfig.json       # TypeScript configuration
+│   │
+│   └── tests/                   # Comprehensive Test Suite
+│       ├── run_tests.py        # Test runner with logging
+│       ├── test_api.py         # API endpoint tests
+│       ├── test_openai_service.py # OpenAI service tests
+│       └── test_performance.py  # Performance and stability tests
+│
+└── data/                        # Application data directory
+    └── app.db                   # SQLite database (created at runtime)
 ```
 
-### 3. Development Mode
-```bash
-# Start development servers
-./start-dev.sh
-```
+## 🐳 Docker Container Setup
 
-### 4. Production Mode
-```bash
-# Start with Docker (single container)
-./start-prod.sh
+### Building the Container
+The application uses a sophisticated multi-stage Docker build:
 
-# Or manually:
+1. **Frontend Build Stage**: Compiles React TypeScript application
+2. **Backend Build Stage**: Installs Python dependencies
+3. **Final Stage**: Combines everything into production container
+
+```bash
+# Build the container
 docker build -t tbi-app .
-docker run -p 8080:8080 tbi-app
+
+# The build process:
+# 1. Builds React frontend with production optimizations
+# 2. Installs Python dependencies for FastAPI
+# 3. Configures nginx reverse proxy
+# 4. Sets up supervisor for process management
+# 5. Configures test environment at /home/src/
 ```
 
-## 🛠️ Manual Setup
+### Container Configuration
+The container is configured with:
+- **Port 8080**: Main application access point
+- **Environment Variables**: Production settings with simulation mode
+- **Health Checks**: Automatic monitoring and restart
+- **Volume Support**: Persistent data storage capability
 
-### Backend Setup
+## 🚀 Running the Application
+
+### Production Deployment
 ```bash
-# Create virtual environment
-python3 -m venv tbi
-source tbi/bin/activate
+# Start the application
+docker run -p 8080:8080 --name my-app tbi-app
 
-# Install dependencies
-pip install -r requirements.txt
+# Access the application
+open http://localhost:8080
 
-# Start backend
-uvicorn src.app.main:app --reload --host 0.0.0.0 --port 8000
+# Monitor the application
+docker logs -f my-app
+
+# Stop the application
+docker stop my-app
 ```
 
-### Frontend Setup
+### Test Execution
 ```bash
-# Install dependencies
-cd src/frontend
-npm install
+# Run all tests (unit, integration, performance)
+docker run --rm tbi-app python /home/src/tests/run_tests.py
 
-# Start frontend
-npm start
+# The test suite includes:
+# - 9 API endpoint tests
+# - 7 OpenAI service tests  
+# - 4 performance tests
+# - 4 stability and memory tests
+# Total: 24 comprehensive tests
 ```
 
-## 🧪 Testing
-
-### Run All Tests
+### Advanced Usage
 ```bash
-./run-tests.sh
+# Run with custom name and environment
+docker run -p 8080:8080 \
+  --name production-app \
+  -e SECRET_KEY=your-secret-key \
+  tbi-app
+
+# Run tests with verbose output
+docker run --rm tbi-app python /home/src/tests/run_tests.py -v
+
+# Access container for debugging
+docker exec -it production-app /bin/bash
 ```
 
-### Run Specific Tests
+## 🔧 Configuration Options
+
+### Environment Variables
+- `SIMULATE_OPENAI_KEY`: Set to "1" for testing without real API keys
+- `SECRET_KEY`: Encryption key for API key storage
+- `DATABASE_URL`: Database connection string
+- `ENVIRONMENT`: Application environment (production/development)
+
+### Production Settings
+The container comes pre-configured for production with:
+- Nginx optimization and security headers
+- FastAPI with async/await performance
+- Automatic process restart via supervisor
+- Health check endpoints
+- CORS properly configured
+
+## 🧪 Testing Framework
+
+### Test Categories
+1. **API Tests** (`test_api.py`): Endpoint functionality and validation
+2. **Service Tests** (`test_openai_service.py`): OpenAI integration and document processing  
+3. **Performance Tests** (`test_performance.py`): Latency, concurrency, and stability
+
+### Test Features
+- **Simulation Mode**: Tests run without requiring real OpenAI API keys
+- **Comprehensive Coverage**: API, business logic, and performance testing
+- **Automated Validation**: Response time, memory usage, and error handling
+- **Exit Code Support**: Proper exit codes for CI/CD integration
+
+### Running Specific Tests
 ```bash
-# Backend tests only
-source tbi/bin/activate
-cd src
-python -m pytest tests/ -v
+# Run only API tests
+docker run --rm tbi-app python -m pytest /home/src/tests/test_api.py -v
 
-# Performance tests
-python -m pytest tests/test_performance.py -v
+# Run only performance tests  
+docker run --rm tbi-app python -m pytest /home/src/tests/test_performance.py -v
 
-# Frontend tests
-cd frontend
-npm test
+# Run with detailed output
+docker run --rm tbi-app python /home/src/tests/run_tests.py --verbose
 ```
 
 ## 📊 Performance Specifications
 
-- **P95 Latency**: <3 seconds for document queries
-- **Cost Efficiency**: <$0.01 per query
-- **Stability**: 100+ consecutive queries without failure
-- **Concurrent Users**: Supports multiple simultaneous sessions
-- **Document Size**: Up to 1MB per document
-- **Session Management**: Persistent across browser sessions
+- **Latency**: Sub-3 second response times for document queries
+- **Concurrency**: Supports multiple simultaneous users
+- **Stability**: 100+ consecutive queries without failure  
+- **Memory Efficiency**: Automatic cleanup and garbage collection
+- **Cost Optimization**: Smart token usage with OpenAI API
 
-## 🔧 Configuration
+## 🔒 Security Features
 
-### Environment Variables
+- **API Key Encryption**: OpenAI keys encrypted at rest using Fernet
+- **CORS Protection**: Properly configured for production and development
+- **Input Validation**: Comprehensive request validation with Pydantic
+- **Session Isolation**: Each user session is completely isolated
+- **Error Handling**: Secure error messages without information leakage
 
-#### Backend (.env)
-```bash
-# Required
-OPENAI_API_KEY=your_openai_api_key_here
-SECRET_KEY=your_secret_key_for_encryption
+## 🌐 API Documentation
 
-# Optional
-DATABASE_URL=sqlite:///data/app.db
-ENVIRONMENT=development
-REDIS_URL=redis://localhost:6379/0
-```
+Once running, access interactive API documentation at:
+- **Swagger UI**: http://localhost:8080/api/docs
+- **ReDoc**: http://localhost:8080/api/redoc
 
-#### Frontend (src/frontend/.env)
-```bash
-REACT_APP_API_URL=http://localhost:8000
-REACT_APP_VERSION=1.0.0
-REACT_APP_ENVIRONMENT=development
-```
+### Key Endpoints
+- `GET /api/health` - Application health check
+- `POST /api/sessions/` - Create new session
+- `POST /api/config/openai-key` - Set OpenAI API key
+- `POST /api/documents/upload` - Upload document
+- `POST /api/chat/query` - Send chat query (streaming)
 
-### Application Settings
-- **OpenAI Model**: Configurable (default: gpt-4o-mini)
-- **Max Document Size**: 1MB (configurable)
-- **Query Timeout**: 30 seconds
-- **Rate Limiting**: 10 requests per minute per session
-
-## 📁 Project Structure
-
-```
-tbi/
-├── Dockerfile                  # Single-container deployment
-├── nginx-single.conf           # Nginx configuration
-├── supervisord.conf           # Process management
-├── requirements.txt            # Python dependencies
-├── setup.sh                    # Initial setup script
-├── start-dev.sh               # Development startup
-├── start-prod.sh              # Production startup
-├── run-tests.sh               # Test runner
-├── src/
-│   ├── app/                   # Backend application
-│   │   ├── main.py           # FastAPI application
-│   │   ├── api/              # API routes
-│   │   ├── models/           # Database models
-│   │   ├── services/         # Business logic
-│   │   └── utils/            # Utilities
-│   ├── frontend/             # React application
-│   │   ├── src/
-│   │   │   ├── components/   # React components
-│   │   │   ├── contexts/     # State management
-│   │   │   └── App.tsx       # Main component
-│   │   └── package.json
-│   └── tests/                # Test suite
-└── tbi/                      # Python virtual environment
-```
-
-## 🌐 API Endpoints
-
-### Core Endpoints
-- `GET /health` - Health check
-- `POST /sessions/` - Create new session
-- `GET /sessions/{session_id}/history` - Get chat history
-- `POST /sessions/{session_id}/chat` - Send query (streaming)
-- `POST /sessions/{session_id}/documents/upload` - Upload file
-- `POST /sessions/{session_id}/documents/upload-text` - Upload text
-- `GET /sessions/{session_id}/documents` - List documents
-- `POST /sessions/{session_id}/config/api-key` - Set API key
-- `GET /sessions/{session_id}/config` - Get configuration
-
-### Authentication
-API keys are stored encrypted per session. No global authentication required for the prototype.
-
-## 🐳 Docker Deployment
-
-### Single Container (Recommended)
-```bash
-# Build and start
-docker build -t tbi-app .
-docker run -p 8080:8080 tbi-app
-
-# Or use production script
-./start-prod.sh
-
-# View logs
-docker logs -f tbi-app-prod
-
-# Stop service
-docker stop tbi-app-prod
-```
-
-### Access the Application
-- **Frontend**: http://localhost:8080
-- **API Health**: http://localhost:8080/health  
-- **API Docs**: http://localhost:8080/api/docs
-
-## 🔍 Monitoring and Debugging
-
-### Health Checks
-- Application: `http://localhost:8080/health`
-- Frontend: `http://localhost:8080`
-
-### Logs
-```bash
-# Development logs
-tail -f backend.log
-
-# Docker logs
-docker logs -f tbi-app-prod
-```
-
-### Performance Monitoring
-- Built-in latency tracking
-- Token usage monitoring
-- Error rate tracking
-- Memory usage monitoring
-
-## 🛡️ Security Considerations
-
-- **API Key Encryption**: OpenAI keys encrypted at rest
-- **CORS Protection**: Configured for development/production
-- **Input Validation**: Comprehensive request validation
-- **Rate Limiting**: Per-session request limiting
-- **File Size Limits**: Prevent abuse with size restrictions
-
-## 🚧 Known Limitations
-
-- **Prototype Status**: Not production-hardened
-- **Single Server**: No load balancing or clustering
-- **Local Storage**: SQLite for simplicity (use PostgreSQL for production)
-- **Basic Auth**: No user authentication system
-- **File Types**: Text-based documents only
-
-## 🔄 Development Workflow
-
-### Making Changes
-1. **Backend changes**: Automatic reload in development mode
-2. **Frontend changes**: Hot reload with React dev server
-3. **Database changes**: Migrations handled automatically
-4. **Testing**: Run tests before committing
-
-### Adding Features
-1. **Backend**: Add routes in `src/app/api/routes.py`
-2. **Frontend**: Add components in `src/frontend/src/components/`
-3. **Database**: Update models in `src/app/models/database.py`
-4. **Tests**: Add tests in `src/tests/`
-
-## 📈 Performance Optimization
-
-### Cost Optimization
-- **Smart chunking**: Minimize token usage
-- **Context optimization**: Relevant document selection
-- **Caching**: Session-based response caching
-- **Model selection**: Cost-effective model choices
-
-### Latency Optimization
-- **Streaming responses**: Real-time user feedback
-- **Async processing**: Non-blocking operations
-- **Connection pooling**: Efficient resource usage
-- **CDN ready**: Static asset optimization
-
-## 🆘 Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-#### Backend won't start
+#### Container won't start
 ```bash
-# Check Python version
-python3 --version
+# Check if port is available
+lsof -i :8080
 
-# Check virtual environment
-source tbi/bin/activate
-pip list
+# Check container logs
+docker logs <container-name>
 
-# Check database
-ls -la data/
+# Rebuild container
+docker build -t tbi-app . --no-cache
 ```
 
-#### Frontend build issues
+#### Frontend shows connection errors
+- Ensure container is fully started (wait 30 seconds)
+- Check that port 8080 is properly mapped
+- Verify health endpoint: `curl http://localhost:8080/api/health`
+
+#### Tests fail
+- Ensure SIMULATE_OPENAI_KEY=1 is set for test environment
+- Check container has proper test files at /home/src/tests/
+- Verify Python path and dependencies
+
+### Health Checks
 ```bash
-# Clear cache
-rm -rf src/frontend/node_modules
-rm src/frontend/package-lock.json
-cd src/frontend && npm install
+# Application health
+curl http://localhost:8080/api/health
+
+# Container status
+docker ps --filter name=your-container-name
+
+# Process status inside container
+docker exec your-container-name supervisorctl status
 ```
 
-#### OpenAI API errors
-- Verify API key in .env file
-- Check API key permissions
-- Monitor usage limits
-- Check network connectivity
+## 🔄 Development Notes
 
-#### Docker issues
-```bash
-# Reset Docker environment
-docker stop tbi-app-prod
-docker rm tbi-app-prod
-docker system prune -f
-docker build -t tbi-app .
-```
+### Design Decisions
+1. **Single Container**: Simplified deployment and resource management
+2. **Nginx Proxy**: Professional routing and static file serving
+3. **Supervisor**: Robust process management and auto-restart
+4. **SQLite**: Lightweight database suitable for single-instance deployment
+5. **React Build**: Optimized static files served by nginx
+
+### Production Considerations
+- For production scale, consider PostgreSQL instead of SQLite
+- Implement proper user authentication for multi-tenant use
+- Add monitoring and logging solutions (Prometheus, ELK stack)
+- Consider container orchestration (Kubernetes) for high availability
 
 ## 📞 Support
 
 For issues and questions:
-1. Check this documentation
-2. Review error logs
-3. Check GitHub issues
-4. Run diagnostic tests: `./run-tests.sh`
+1. Check application health: `http://localhost:8080/api/health`
+2. Review container logs: `docker logs <container-name>`
+3. Run test suite: `docker run <image_tag> python /home/src/tests/run_tests.py`
+4. Verify configuration and environment variables
 
-## 🔮 Future Enhancements
+## 📜 License
 
-- **Multi-user support** with authentication
-- **Advanced file types** (PDF, Word, etc.)
-- **Vector embeddings** for better document search
-- **Batch processing** for multiple documents
-- **API rate limiting** improvements
-- **Advanced analytics** and reporting
-- **Cloud deployment** guides
-- **Plugin system** for extensibility
+MIT License - see LICENSE file for details
 
 ---
 
-**License**: MIT License - see LICENSE file for details
+**Ready to deploy? Just run:** `docker run -p 8080:8080 <your_image_tag>`
