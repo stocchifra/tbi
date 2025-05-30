@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///data/chat_history.db"
     
     # OpenAI Settings (will be set via UI)
-    openai_api_key: Optional[str] = "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"
+    openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o-mini"
     openai_max_tokens: int = 1000
     openai_temperature: float = 0.7
