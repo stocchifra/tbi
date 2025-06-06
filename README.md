@@ -2,7 +2,7 @@
 
 A production-ready single-container application for AI-powered document analysis and conversational querying. Built with FastAPI backend, React TypeScript frontend, and OpenAI integration, all packaged in a single Docker container for easy deployment.
 
-## 🚀 Quick Start
+## Quick Start
 
 The application provides two main commands for deployment and testing:
 
@@ -18,7 +18,7 @@ docker run <image_tag> python /home/src/tests/run_tests.py
 ```
 **Runs complete test suite (24 unit, integration, and performance tests)**
 
-## 🏗️ High-Level Architecture
+## High-Level Architecture
 
 ### Single-Container Design
 The application uses a sophisticated single-container architecture that combines multiple services:
@@ -81,7 +81,7 @@ The application uses a sophisticated single-container architecture that combines
 - Automatic restart on failure
 - Centralized logging and monitoring
 
-## 🎯 Application Logic
+## Application Logic
 
 ### Core Workflow
 1. **Session Creation**: Each user gets a unique session ID
@@ -97,7 +97,7 @@ The application uses a sophisticated single-container architecture that combines
 - **Production Ready**: Health checks, error handling, and monitoring
 - **Security**: Encrypted API key storage and CORS protection
 
-## 🛠️ Repository Structure
+## Repository Structure
 
 ```
 tbi/
@@ -146,7 +146,7 @@ tbi/
     └── app.db                   # SQLite database (created at runtime)
 ```
 
-## 🐳 Docker Container Setup
+## Docker Container Setup
 
 ### Building the Container
 The application uses a sophisticated multi-stage Docker build:
@@ -174,7 +174,7 @@ The container is configured with:
 - **Health Checks**: Automatic monitoring and restart
 - **Volume Support**: Persistent data storage capability
 
-## 🚀 Running the Application
+## Running the Application
 
 ### Production Deployment
 ```bash
@@ -219,7 +219,7 @@ docker run --rm tbi-app python /home/src/tests/run_tests.py -v
 docker exec -it production-app /bin/bash
 ```
 
-## 🔧 Configuration Options
+## Configuration Options
 
 ### Environment Variables
 - `SIMULATE_OPENAI_KEY`: Set to "1" for testing without real API keys
@@ -260,7 +260,7 @@ docker run --rm tbi-app python -m pytest /home/src/tests/test_performance.py -v
 docker run --rm tbi-app python /home/src/tests/run_tests.py --verbose
 ```
 
-## 📊 Performance Specifications
+## Performance Specifications
 
 - **Latency**: Sub-3 second response times for document queries
 - **Concurrency**: Supports multiple simultaneous users
@@ -268,7 +268,7 @@ docker run --rm tbi-app python /home/src/tests/run_tests.py --verbose
 - **Memory Efficiency**: Automatic cleanup and garbage collection
 - **Cost Optimization**: Smart token usage with OpenAI API
 
-## 🔒 Security Features
+## Security Features
 
 - **API Key Encryption**: OpenAI keys encrypted at rest using Fernet
 - **CORS Protection**: Properly configured for production and development
@@ -276,7 +276,7 @@ docker run --rm tbi-app python /home/src/tests/run_tests.py --verbose
 - **Session Isolation**: Each user session is completely isolated
 - **Error Handling**: Secure error messages without information leakage
 
-## 🌐 API Documentation
+## API Documentation
 
 Once running, access interactive API documentation at:
 - **Swagger UI**: http://localhost:8080/api/docs
@@ -289,7 +289,7 @@ Once running, access interactive API documentation at:
 - `POST /api/documents/upload` - Upload document
 - `POST /api/chat/query` - Send chat query (streaming)
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -327,7 +327,7 @@ docker ps --filter name=your-container-name
 docker exec your-container-name supervisorctl status
 ```
 
-## 🔄 Development Notes
+## Development Notes
 
 ### Design Decisions
 1. **Single Container**: Simplified deployment and resource management
@@ -342,13 +342,7 @@ docker exec your-container-name supervisorctl status
 - Add monitoring and logging solutions (Prometheus, ELK stack)
 - Consider container orchestration (Kubernetes) for high availability
 
-## 📞 Support
 
-For issues and questions:
-1. Check application health: `http://localhost:8080/api/health`
-2. Review container logs: `docker logs <container-name>`
-3. Run test suite: `docker run <image_tag> python /home/src/tests/run_tests.py`
-4. Verify configuration and environment variables
 
 ## 📜 License
 
